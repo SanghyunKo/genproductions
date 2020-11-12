@@ -20,7 +20,7 @@ cat<<-EOF
         +IsGridpack=true
         +GridpackCard = "${card_name}"
 	
-	+REQUIRED_OS = "rhel6"
+	+REQUIRED_OS = $rhel_os
 	request_cpus = $cores
 	request_memory = $memory
 	Queue 1
@@ -167,6 +167,11 @@ cores="${3:-1}"
 memory="${4:-2 Gb}"
 scram_arch="${5:-}"
 cmssw_version="${6:-}"
+rhel_os="rhel7"
+
+if [ $scram_arch==*"slc6"* ]; then
+  rhel_os="rhel6"
+fi
 
 parent_dir=$PWD
 

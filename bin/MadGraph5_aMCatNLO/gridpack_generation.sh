@@ -612,7 +612,7 @@ if [ -n "$5" ]
   then
     scram_arch=${5}
   else
-    scram_arch=slc6_amd64_gcc630 #slc6_amd64_gcc481
+    scram_arch=slc7_amd64_gcc820 #slc6_amd64_gcc630
 fi
 
 # Require OS and scram_arch to be consistent
@@ -626,7 +626,7 @@ if [ -n "$6" ]
   then
     cmssw_version=${6}
   else
-    cmssw_version=CMSSW_9_3_16 #CMSSW_7_1_30
+    cmssw_version=CMSSW_10_6_17_patch1 #CMSSW_9_3_16
 fi
  
 # jobstep can be 'ALL','CODEGEN', 'INTEGRATE', 'MADSPIN'
