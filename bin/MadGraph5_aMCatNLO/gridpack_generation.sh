@@ -79,10 +79,12 @@ make_gridpack () {
     # CMS Connect runs git status inside its own script.
     if [ $iscmsconnect -eq 0 ]; then
       cd $PRODHOME
-      git status
-      echo "Current git revision is:"
-      git rev-parse HEAD
-      git diff | cat
+      if [ -x "$(command -v git)" ]; then
+        git status
+        echo "Current git revision is:"
+        git rev-parse HEAD
+        git diff | cat
+      fi
       cd -
     fi
     
@@ -390,7 +392,11 @@ make_gridpack () {
     #################################
     script_dir="${PRODHOME}/Utilities/scripts"
     if [ ! -d "$script_dir" ]; then
-      script_dir=$(git rev-parse --show-toplevel)/Utilities/scripts
+      if ! [ -x "$(command -v git)" ]; then
+        script_dir=${PRODHOME%genproductions*}/genproductions/Utilities/scripts
+      else
+        script_dir=$(git rev-parse --show-toplevel)/Utilities/scripts
+      fi
     fi
     
     prepare_run_card $name $CARDSDIR $is5FlavorScheme $script_dir $isnlo
@@ -639,8 +645,12 @@ fi
 helpers_dir=${PRODHOME%genproductions*}/genproductions/Utilities
 helpers_file=${helpers_dir}/gridpack_helpers.sh
 if [ ! -f "$helpers_file" ]; then
+  if ! [ -x "$(command -v git)" ]; then
+    helpers_dir=${PRODHOME%genproductions*}/genproductions/bin/MadGraph5_aMCatNLO/Utilities
+  else
     helpers_dir=$(git rev-parse --show-toplevel)/bin/MadGraph5_aMCatNLO/Utilities
-    helpers_file=${helpers_dir}/gridpack_helpers.sh
+  fi
+  helpers_file=${helpers_dir}/gridpack_helpers.sh
 fi
 source ${helpers_file}
 
