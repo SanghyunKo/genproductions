@@ -169,7 +169,7 @@ scram_arch="${5:-}"
 cmssw_version="${6:-}"
 rhel_os="rhel7"
 
-if [ $scram_arch==*"slc6"* ]; then
+if [[ $scram_arch == *"slc6"* ]]; then
   rhel_os="rhel6"
 fi
 
