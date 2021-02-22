@@ -1,0 +1,110 @@
+diff --git a/bin/MadGraph5_aMCatNLO/gridpack_generation.sh b/bin/MadGraph5_aMCatNLO/gridpack_generation.sh
+index 0372bc0..617486a 100755
+--- a/bin/MadGraph5_aMCatNLO/gridpack_generation.sh
++++ b/bin/MadGraph5_aMCatNLO/gridpack_generation.sh
+@@ -128,6 +128,12 @@ make_gridpack () {
+       cd ${name}_gridpack ; mkdir -p work ; cd work
+       WORKDIR=`pwd`
+       eval `scram runtime -sh`
++
++      sed -i s:\/cvmfs\/cms.cern.ch\/slc7_amd64_gcc700\/external\/lhapdf\/6.2.1-pafccj3:$PATH_TO_LOCAL_LHAPDF6:g $CMSSW_BASE/config/toolbox/slc7_amd64_gcc700/tools/selected/lhapdf.xml
++      sed -i s:6.2.1-pafccj3:6.3.0:g $CMSSW_BASE/config/toolbox/slc7_amd64_gcc700/tools/selected/lhapdf.xml 
++
++      scram setup lhapdf
++      eval `scram runtime -sh`
+     
+       # use python 2.7 and include python bindings from default to allow "import htcondor" after cmsenv
+       set +u 
+@@ -193,9 +199,9 @@ make_gridpack () {
+     	  long_wait=300
+     	  short_wait=120
+           else
+-    	  n_retries=3
+-    	  long_wait=60
+-    	  short_wait=30
++    	  n_retries=50
++    	  long_wait=300
++    	  short_wait=120
+           fi
+           echo "set cluster_status_update $long_wait $short_wait" >> mgconfigscript
+           echo "set cluster_nb_retry $n_retries" >> mgconfigscript
+@@ -205,7 +211,7 @@ make_gridpack () {
+               echo "local path is not an afs path, batch jobs will use worker node scratch space instead of afs"
+               #*FIXME* broken in mg_amc 2.4.0
+     #           echo "set cluster_temp_path `echo $RUNHOME`" >> mgconfigscript 
+-              echo "set cluster_retry_wait 30" >> mgconfigscript 
++              echo "set cluster_retry_wait 300" >> mgconfigscript 
+               isscratchspace=1
+           fi      
+       fi
+@@ -584,8 +590,9 @@ make_gridpack () {
+       pdfExtraArgs+="--is5FlavorScheme "
+     fi 
+     
+-    pdfSysArgs=$(python ${script_dir}/getMG5_aMC_PDFInputs.py -f systematics -c 2017 $pdfExtraArgs)
+-    sed -i s/PDF_SETS_REPLACE/${pdfSysArgs}/g runcmsgrid.sh
++    #pdfSysArgs=$(python ${script_dir}/getMG5_aMC_PDFInputs.py -f systematics -c 2017 $pdfExtraArgs)
++    #sed -i s/PDF_SETS_REPLACE/${pdfSysArgs}/g runcmsgrid.sh
++    sed -i s/PDF_SETS_REPLACE/399999,325300,292200/g runcmsgrid.sh
+     
+     
+     #clean unneeded files for generation
+diff --git a/bin/MadGraph5_aMCatNLO/runcmsgrid_NLO.sh b/bin/MadGraph5_aMCatNLO/runcmsgrid_NLO.sh
+index 1d27eb6..ba1ea85 100755
+--- a/bin/MadGraph5_aMCatNLO/runcmsgrid_NLO.sh
++++ b/bin/MadGraph5_aMCatNLO/runcmsgrid_NLO.sh
+@@ -23,7 +23,7 @@ if [ "$use_gridpack_env" = true ]
+     then
+         scram_arch_version=${5}
+     else
+-        scram_arch_version=SCRAM_ARCH_VERSION_REPLACE
++        scram_arch_version=slc7_amd64_gcc700
+     fi
+     echo "%MSG-MG5 SCRAM_ARCH version = $scram_arch_version"
+     
+@@ -31,7 +31,7 @@ if [ "$use_gridpack_env" = true ]
+     then
+         cmssw_version=${6}
+     else
+-        cmssw_version=CMSSW_VERSION_REPLACE
++        cmssw_version=CMSSW_10_6_19
+     fi
+     echo "%MSG-MG5 CMSSW version = $cmssw_version"
+     export VO_CMS_SW_DIR=/cvmfs/cms.cern.ch
+@@ -40,6 +40,36 @@ if [ "$use_gridpack_env" = true ]
+     scramv1 project CMSSW ${cmssw_version}
+     cd ${cmssw_version}/src
+     eval `scramv1 runtime -sh`
++
++    export work_home=$PWD
++    echo "work_home is $work_home"
++    echo "CMSSW is $CMSSW_BASE"
++
++    wget https://lhapdf.hepforge.org/downloads/?f=LHAPDF-6.3.0.tar.gz -O LHAPDF-6.3.0.tar.gz
++    tar -xf LHAPDF-6.3.0.tar.gz
++    cd LHAPDF-6.3.0
++    ./configure --prefix=$work_home/lhapdf6
++    make
++    make install
++    cd $work_home
++
++    wget https://data.nnpdf.science/NNPDF40/NNPDF40_nnlo_as_0118_prelim.tar.gz
++    wget http://lhapdfsets.web.cern.ch/lhapdfsets/current/NNPDF30_nlo_nf_5_pdfas.tar.gz
++    wget http://lhapdfsets.web.cern.ch/lhapdfsets/current/NNPDF31_nnlo_as_0118_mc_hessian_pdfas.tar.gz
++
++    tar -xf NNPDF40_nnlo_as_0118_prelim.tar.gz -C lhapdf6/share/LHAPDF/
++    tar -xf NNPDF31_nnlo_as_0118_mc_hessian_pdfas.tar.gz -C lhapdf6/share/LHAPDF/
++    tar -xf NNPDF30_nlo_nf_5_pdfas.tar.gz -C lhapdf6/share/LHAPDF/
++
++    sed -i '904a 399999 NNPDF40_nnlo_as_0118_prelim 1' lhapdf6/share/LHAPDF/pdfsets.index
++
++    sed -i s:\/cvmfs\/cms.cern.ch\/slc7_amd64_gcc700\/external\/lhapdf\/6.2.1-pafccj3:$work_home\/lhapdf6:g $CMSSW_BASE/config/toolbox/slc7_amd64_gcc700/tools/selected/lhapdf.xml
++    sed -i s:6.2.1-pafccj3:6.3.0:g $CMSSW_BASE/config/toolbox/slc7_amd64_gcc700/tools/selected/lhapdf.xml
++
++    scram setup lhapdf
++    eval `scram runtime -sh`
++
++    echo "LHAPDF_DATA_PATH is $LHAPDF_DATA_PATH"
+ fi
+ 
+ if [ ! -z "${PYTHON27PATH}" ] ; then export PYTHONPATH=${PYTHON27PATH} ; fi 
